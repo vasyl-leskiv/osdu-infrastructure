@@ -78,6 +78,7 @@ locals {
 
   tenant_id           = data.azurerm_client_config.current.tenant_id
   resource_group_name = format("%s-%s-%s-rg", var.prefix, local.workspace, random_string.workspace_scope.result)
+  ad_app_management_name = "${local.base_name}-tester"
 
   // airflow.tf
   storage_name           = "${replace(local.base_name_21, "-", "")}af"
@@ -87,6 +88,10 @@ locals {
   postgresql_name        = "${local.base_name}-pg"
   postgres_password      = coalesce(var.postgres_password, random_password.postgres[0].result)
   airflow_admin_password = coalesce(var.airflow_admin_password, random_password.airflow_admin_password[0].result)
+
+  rbac_contributor_scopes = concat(
+    [data.terraform_remote_state.central_resources.outputs.container_registry_id],
+  )
 
   // network.tf
   vnet_name           = "${local.base_name_60}-vnet"
@@ -145,6 +150,29 @@ resource "azurerm_resource_group" "main" {
   lifecycle {
     ignore_changes = [tags]
   }
+}
+
+
+#-------------------------------
+# AD Principal and Applications
+#-------------------------------
+module "app_management_service_principal" {
+  source          = "../../../modules/providers/azure/service-principal"
+  create_for_rbac = var.create_for_rbac
+  name            = var.create_for_rbac == true ? local.ad_app_management_name : ""
+  role            = "Contributor"
+  scopes          = local.rbac_contributor_scopes
+  object_id       = var.create_for_rbac == true ? "" : var.byo_sp_object_id
+  password        = var.create_for_rbac == true ? "" : var.byo_sp_client_secret
+
+  api_permissions = [
+    {
+      name = "Microsoft Graph"
+      app_roles = [
+        "Directory.Read.All"
+      ]
+    }
+  ]
 }
 
 

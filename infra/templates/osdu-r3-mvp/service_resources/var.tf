@@ -178,3 +178,21 @@ variable "ssl_certificate_file" {
   description = "(Required) The x509-based SSL certificate used to setup ssl termination on the app gateway."
   default     = ""
 }
+
+variable "create_for_rbac" {
+  description = "Enables BYO service principal"
+  type        = bool
+  default     = "false"
+}
+
+variable "byo_sp_client_secret" {
+  description = "The password of the BYO service principal"
+  type        = string
+  default     = ""
+}
+
+variable "byo_sp_object_id" {
+  description = "The ID of the Azure AD Application of the BYO service principal"
+  type        = string
+  default     = ""
+}

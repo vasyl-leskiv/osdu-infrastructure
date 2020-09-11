@@ -30,6 +30,21 @@ export ARM_ACCESS_KEY=""
 export TF_VAR_resource_group_location="centralus"
 ```
 
+Choose one option according to the [README.md (ToDo)]()
+- Enable "Bring your own service principal (BYO)":
+```bash
+export TF_VAR_create_for_rbac=false
+export TF_VAR_byo_sp_object_id=""
+export TF_VAR_byo_sp_client_secret=""
+```
+
+- Or disable "Bring your own service principal (BYO)":
+```bash
+export TF_VAR_create_for_rbac=true
+unset TF_VAR_byo_sp_object_id
+unset TF_VAR_byo_sp_client_secret
+```
+
 2. Navigate to the `terraform.tfvars` terraform file. Here's a sample of the terraform.tfvars file for this template.
 
 ```HCL

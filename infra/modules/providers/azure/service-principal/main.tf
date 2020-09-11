@@ -23,6 +23,10 @@ data "azuread_service_principal" "main" {
   display_name = local.api_names[count.index]
 }
 
+data "azuread_service_principal" "byosp" {
+  count        = var.create_for_rbac == true ? 0 : 1
+  object_id    = var.object_id
+}
 
 resource "azuread_application" "main" {
   count                      = local.create_count
@@ -60,7 +64,7 @@ resource "azurerm_role_assignment" "main" {
 }
 
 resource "azuread_service_principal_password" "main" {
-  count                = var.password != null ? 1 : 0
+  count                = local.create_count
   service_principal_id = azuread_service_principal.main[0].id
 
   value             = coalesce(var.password, random_password.main[0].result)
