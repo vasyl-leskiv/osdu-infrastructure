@@ -20,3 +20,15 @@
 */
 
 prefix = "osdu-mvp"
+
+resource_tags = {
+  contact = "pipeline"
+}
+
+# Storage Settings
+storage_shares = [
+  "airflowdags"
+]
+storage_queues = [
+  "airflowlogqueue"
+]
