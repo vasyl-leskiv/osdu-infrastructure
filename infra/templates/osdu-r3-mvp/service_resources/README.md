@@ -6,6 +6,15 @@ __PreRequisites__
 
 Requires the use of [direnv](https://direnv.net/) for environment variable management.
 
+In case of using "Bring your own service principal (BYO)" described in [../README.md](../README.md###-1.-Bring-your-own-service-principal-(BYO)) we need to create a Service Principal manually:
+```bash
+ENVIRONMENT=""
+az ad sp create-for-rbac -n osdu-r3-sr$ENVIRONMENT-tester --skip-assignment true
+#Output:
+# `AppId` represents `TF_VAR_byo_sp_object_id` in the pipeline
+# `Password` represents `TF_VAR_byo_sp_client_secret` in the pipeline
+```
+
 ## Deployment Steps
 
 1. Set up your local environment variables
@@ -30,10 +39,11 @@ export ARM_ACCESS_KEY=""
 export TF_VAR_resource_group_location="centralus"
 ```
 
-Choose one option according to the [README.md (ToDo)]()
+Choose one option according to the [../README.md](../README.md###-1.-Bring-your-own-service-principal-(BYO))
 - Enable "Bring your own service principal (BYO)":
 ```bash
 export TF_VAR_create_for_rbac=false
+# Get next values from __PreRequisites__  :
 export TF_VAR_byo_sp_object_id=""
 export TF_VAR_byo_sp_client_secret=""
 ```
