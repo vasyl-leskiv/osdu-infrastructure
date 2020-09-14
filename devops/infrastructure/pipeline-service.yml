@@ -24,6 +24,9 @@
 # Required Group Variables - `Infrastructure Pipeline - {configurations.jobName}`
   # SERVICE_CONNECTION_NAME
   # ARM_SUBSCRIPTION_ID
+  # TF_VAR_create_for_rbac # true|false. default: false
+  # TF_VAR_byo_sp_object_id     # set only if TF_VAR_create_for_rbac==false
+  # TF_VAR_byo_sp_client_secret # set only if TF_VAR_create_for_rbac==false
 
 # Required Env Group Variables - `Infrastructure Pipeline - {configurations.jobName} - {env_name}`
   # TF_VAR_resource_group_location
