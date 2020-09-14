@@ -9,15 +9,23 @@ We decided to create another configuration that will support data partitions due
 ### 1. Bring your own service principal (BYO)
 In this setup, we operate with two Service principals. One SP used by terraform, and another one should be created for service_resources.
 The use-case describes two options for creating a Service Principal needed for service_resources:
-- Use "Bring your own service principal (BYO)":
+- Option 1: Use "Bring your own service principal (BYO)":
     - The system allows a service principal created in an alternate manner to be provided and used. In this case, we don't have to create SP automatically which allows us not to give terraform extra permission to the Azure Active Directory and follow the principle of least privilege.
     - Means that terraform SP should not have AD permissions for creating another Service Principal.
     - One extra step is required to manually create SP in service_resources [Prerequisites](./service_resources/README.md#__PreRequisites__).
-- Don't use "Bring your own service principal (BYO)" and automatically create a new one.
+- Option 2: Don't use "Bring your own service principal (BYO)" and automatically create a new one.
     - The system should automatically create a Service Principal if one is not provided. It requires elevated permission to the Azure Active Directory.
     - Means that terraform SP should have extra AD permissions for creating another Service Principal.
     - No manual extra steps. Less secure.
 > Using "Bring your own service principal (BYO)" is strongly recommended due to Security best practices.
+
+## Prerequisites
+
+1. Azure Subscription
+1. An available Service Principal for terraform deployment. SP requirements depend on Option choosed in section [Bring your own service principal](###-1.-Bring-your-own-service-principal-(BYO)):
+Option 1: no extra-permissions for Azure Active Directory
+Option 2: with API Permissions granted with Admin Consent within Azure app registration. The required Azure Active Directory Graph app role is `Application.ReadWrite.OwnedBy`
+![image](../../../docs/osdu/images/service_principal_permissions.png)
 
 ## Scenarios this template should avoid
 
