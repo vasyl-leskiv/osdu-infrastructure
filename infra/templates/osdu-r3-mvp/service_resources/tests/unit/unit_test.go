@@ -17,6 +17,7 @@ package test
 import (
 	"os"
 	"testing"
+	"fmt"
 
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/microsoft/cobalt/test-harness/infratests"
@@ -35,6 +36,23 @@ var tfOptions = &terraform.Options{
 	},
 }
 
+
+func ResoureCalculation (totalResource int) int {
+	total := 0
+  if (os.Getenv("TF_VAR_create_for_rbac") == "true") {
+		total = totalResource
+  } else if ((os.Getenv("TF_VAR_create_for_rbac") == "false")) {
+    total = totalResource -4
+  } else {
+		fmt.Println("Please provide a bool variable TF_VAR_create_for_rbac!")
+	  os.Exit(1)
+	}
+	return total
+
+}
+
+var resourceCount int = ResoureCalculation(39)
+
 func TestTemplate(t *testing.T) {
 	expectedAppDevResourceGroup := asMap(t, `{
 		"location": "`+region+`"
@@ -49,7 +67,7 @@ func TestTemplate(t *testing.T) {
 		TfOptions:                       tfOptions,
 		Workspace:                       workspace,
 		PlanAssertions:                  nil,
-		ExpectedResourceCount:           34,
+		ExpectedResourceCount:           resourceCount,
 		ExpectedResourceAttributeValues: resourceDescription,
 	}
 
