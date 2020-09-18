@@ -54,6 +54,7 @@ module "service_principal" {
 
 | Variable Name | Type       | Description                          | 
 | ------------- | ---------- | ------------------------------------ |
+| `create_for_rbac` | _bool_ | `true` - Create SP. `false` - use existing SP     |
 | `name`        | _string_   | The name of the service principal.     |
 | `password`    | _string_   | A password for the service principal. (Optional).  |
 | `end_date`    | _string_   | The relative duration or RFC3339 date after which the password expire.|

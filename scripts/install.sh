@@ -74,7 +74,7 @@ function CreateResourceGroup() {
       LOCK=$(az group lock create --name "OSDU-PROTECTED" \
         --resource-group $1 \
         --lock-type CanNotDelete \
-        -ojsonc) 
+        -ojsonc)
     else
       tput setaf 3;  echo "Resource Group $1 already exists."; tput sgr0
     fi
@@ -82,7 +82,10 @@ function CreateResourceGroup() {
 function CreateServicePrincipal() {
     # Required Argument $1 = PRINCIPAL_NAME
     # Required Argument $2 = VAULT_NAME
-    # Required Argument $3 = true/false (Add Scope)
+    # Optional Argument $3 = Role
+    # Optional Argument $4 = Scopes
+    local ARGS3=${3:-NONE}
+    local ARGS4=${4:-NONE}
 
     if [ -z $1 ]; then
         tput setaf 1; echo 'ERROR: Argument $1 (PRINCIPAL_NAME) not received'; tput sgr0
@@ -93,37 +96,18 @@ function CreateServicePrincipal() {
     if [ "$_result"  == "" ]
     then
 
-      PRINCIPAL_SECRET=$(az ad sp create-for-rbac \
-        --name $1 \
-        --skip-assignment \
-        --role owner \
-        --scopes subscription/${ARM_SUBSCRIPTION_ID} \
-        --query password -otsv)
+      local OPTS="--name $1 --skip-assignment --query password -otsv"
+      if [ ! $ARGS3 == 'NONE' ]; then
+        OPTS+=" --role $ARGS3"
+      fi
+      if [ ! $ARGS4 == 'NONE' ]; then
+        OPTS+=" --scopes $ARGS4"
+      fi
+      local PRINCIPAL_SECRET=$(az ad sp create-for-rbac $OPTS)
 
-      PRINCIPAL_ID=$(az ad sp list \
+      local PRINCIPAL_ID=$(az ad sp list \
         --display-name $1 \
         --query [].appId -otsv)
-
-      # Azure AD Graph API Access Application.ReadWrite.OwnedBy
-      AD_GRAPH_API=$(az ad app permission add \
-        --id $PRINCIPAL_ID \
-        --api 00000002-0000-0000-c000-000000000000 \
-        --api-permissions 824c81eb-e3f8-4ee6-8f6d-de7f50d565b7=Role \
-        -ojsonc)
-
-      # MS Graph API Application.ReadWrite.OwnedBy
-      MS_GRAPH_API=$(az ad app permission add \
-        --id $PRINCIPAL_ID \
-        --api 00000003-0000-0000-c000-000000000000 \
-        --api-permissions 18a4783c-866b-4cc7-a460-3d5e5662c884=Role \
-        -ojsonc)
-
-      # MS Graph API User.Read | Delegated
-      MS_GRAPH=$(az ad app permission add \
-        --id $PRINCIPAL_ID \
-        --api 00000003-0000-0000-c000-000000000000 \
-        --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope \
-        -ojsonc)
 
       tput setaf 2; echo "Adding AD Application Credentials to Vault..." ; tput sgr0
       AddKeyToVault $2 "${1}-id" $PRINCIPAL_ID
@@ -132,6 +116,34 @@ function CreateServicePrincipal() {
     else
         tput setaf 3;  echo "Service Principal $1 already exists."; tput sgr0
     fi
+}
+function ServicePrincipalPermissionAssignment() {
+    # Required Argument $1 = PRINCIPAL_NAME
+
+    PRINCIPAL_ID=$(az ad sp list \
+      --filter "displayname eq '$1'" \
+      --query [].appId -otsv)
+
+    # Azure AD Graph API Access Application.ReadWrite.OwnedBy
+    AD_GRAPH_API=$(az ad app permission add \
+      --id $PRINCIPAL_ID \
+      --api 00000002-0000-0000-c000-000000000000 \
+      --api-permissions 824c81eb-e3f8-4ee6-8f6d-de7f50d565b7=Role \
+      -ojsonc)
+
+    # MS Graph API Application.ReadWrite.OwnedBy
+    lMS_GRAPH_API=$(az ad app permission add \
+      --id $PRINCIPAL_ID \
+      --api 00000003-0000-0000-c000-000000000000 \
+      --api-permissions 18a4783c-866b-4cc7-a460-3d5e5662c884=Role \
+      -ojsonc)
+
+    # MS Graph API User.Read | Delegated
+    MS_GRAPH=$(az ad app permission add \
+      --id $PRINCIPAL_ID \
+      --api 00000003-0000-0000-c000-000000000000 \
+      --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope \
+      -ojsonc)
 }
 function CreateADApplication() {
     # Required Argument $1 = APPLICATION_NAME
@@ -145,11 +157,11 @@ function CreateADApplication() {
     local _result=$(az ad sp list --display-name $1 --query [].appId -otsv)
     if [ "$_result"  == "" ]
     then
-      $APP_SECRET=$(az ad sp create-for-rbac \
+      APP_SECRET=$(az ad sp create-for-rbac \
         --name "${1}" \
         --skip-assignment \
         --query password -otsv)
-      $APP_ID=$(az ad sp list \
+      APP_ID=$(az ad sp list \
         --display-name "${1}" \
         --query [].appId -otsv)
 
@@ -338,8 +350,8 @@ function AddKeyToVault() {
   if [ "$4" == "file" ]; then
     local _secret=$(az keyvault secret set --vault-name $1 --name $2 --file $3)
   else
-    local _secret=$(az keyvault secret set --vault-name $1 --name $2 --value $3)  
-  fi  
+    local _secret=$(az keyvault secret set --vault-name $1 --name $2 --value $3)
+  fi
 }
 
 function CreateADUser() {
@@ -410,8 +422,13 @@ AddKeyToVault $AZURE_VAULT "${AZURE_STORAGE}-storage" $AZURE_STORAGE
 AddKeyToVault $AZURE_VAULT "${AZURE_STORAGE}-storage-key" $STORAGE_KEY
 
 tput setaf 2; echo 'Creating AD Application...' ; tput sgr0
-CreateServicePrincipal "osdu-infra-${UNIQUE}-test-app" $AZURE_VAULT
-CreateServicePrincipal "osdu-infra-${UNIQUE}-test-app-noaccess" $AZURE_VAULT
+CreateServicePrincipal "osdu-infra-${UNIQUE}-test-app" $AZURE_VAULT owner subscription/${ARM_SUBSCRIPTION_ID}
+CreateServicePrincipal "osdu-infra-${UNIQUE}-test-app-noaccess" $AZURE_VAULT owner subscription/${ARM_SUBSCRIPTION_ID}
+CreateServicePrincipal "osdu-infra-${UNIQUE}-test-app-byosp" $AZURE_VAULT
+
+tput setaf 2; echo 'Assign roles to Service Principal...' ; tput sgr0
+ServicePrincipalPermissionAssignment "osdu-infra-${UNIQUE}-test-app"
+ServicePrincipalPermissionAssignment "osdu-infra-${UNIQUE}-test-app-noaccess"
 
 tput setaf 2; echo 'Creating AD User...' ; tput sgr0
 CreateADUser "Integration" "Test"
@@ -428,4 +445,4 @@ tput setaf 3; echo "------------------------------------" ; tput sgr0
 for i in `az keyvault secret list --vault-name $AZURE_VAULT --query [].id -otsv`
 do
    echo "${i##*/}=\"$(az keyvault secret show --vault-name $AZURE_VAULT --id $i --query value -otsv)\""
-done 
+done
